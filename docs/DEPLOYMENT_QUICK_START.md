@@ -1,8 +1,10 @@
-# Deployment Quick Start Guide
+# Deployment Quick Start Guide (Free Tier)
 
 ## TL;DR - Recommended Approach
 
-**Deploy Time Warp to AWS ECS Fargate with RDS PostgreSQL**
+**Deploy Time Warp to a single EC2 t2.micro instance with Docker Compose**
+
+**Cost: $0/month (first year), ~$10/month after**
 
 ## Architecture Diagram
 
@@ -13,35 +15,38 @@
                             │
                             ▼
                     ┌───────────────┐
-                    │  Route 53     │ (DNS)
+                    │  CloudFlare   │ (Free DNS/CDN)
                     │  (Optional)   │
                     └───────┬───────┘
                             │
                             ▼
                     ┌───────────────┐
-                    │      ALB      │ (Application Load Balancer)
-                    │   HTTPS:443   │
+                    │  EC2 t2.micro │ (Free tier: $0/month)
+                    │  Ubuntu 22.04 │
                     └───────┬───────┘
                             │
                             ▼
+                    ┌───────────────┐
+                    │ Docker Compose│
+                    └───────┬───────┘
+                            │
         ┌───────────────────┴───────────────────┐
         │                                         │
         ▼                                         ▼
 ┌───────────────┐                        ┌───────────────┐
-│  ECS Fargate  │                        │  ECS Fargate  │
-│   Service 1   │                        │   Service 2    │
-│               │                        │               │
-│  Django App   │                        │  Django App   │
-│  (Gunicorn)   │                        │  (Gunicorn)   │
+│    Nginx      │                        │   Django      │
+│  (Reverse     │                        │  (Gunicorn)   │
+│   Proxy)      │                        │               │
+│  SSL:443      │                        │               │
 └───────┬───────┘                        └───────┬───────┘
         │                                         │
         └───────────────────┬───────────────────┘
                             │
                             ▼
                     ┌───────────────┐
-                    │  RDS          │
                     │  PostgreSQL   │
-                    │  (Private)    │
+                    │  (Container)  │
+                    │  (Volume)     │
                     └───────────────┘
 ```
 
@@ -49,39 +54,51 @@
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
-| **Container Platform** | ECS Fargate | Serverless, no EC2 management, auto-scaling |
-| **Database** | RDS PostgreSQL | Managed, automated backups, Multi-AZ support |
-| **Load Balancer** | ALB | HTTPS termination, health checks, path routing |
-| **IaC Tool** | AWS CDK (Python) | Type-safe, familiar language, good AWS integration |
-| **CI/CD** | GitHub Actions | Simple, free for public repos, good Docker support |
-| **Container Registry** | Amazon ECR | Integrated with ECS, secure, cost-effective |
-| **Secrets** | AWS Secrets Manager | Secure, automatic rotation support |
-| **Monitoring** | CloudWatch | Native AWS integration, no additional setup |
+| **Hosting** | EC2 t2.micro | Free tier eligible ($0/month first year) |
+| **Container Platform** | Docker Compose | Simple, free, runs on single EC2 instance |
+| **Database** | PostgreSQL (Docker) | Free, no RDS costs ($15-20/month saved) |
+| **Web Server** | Nginx (Docker) | Free, handles SSL termination |
+| **SSL** | Let's Encrypt | Free SSL certificates via Certbot |
+| **DNS/CDN** | CloudFlare | Free tier includes DNS and CDN |
+| **CI/CD** | GitHub Actions | Free for public repos, deploy via SSH |
+| **Container Registry** | Docker Hub | Free public repos (or ECR 500MB free tier) |
+| **Secrets** | .env file | Simple, secure with proper permissions |
+| **Monitoring** | CloudWatch Free Tier | 10 metrics, 5GB logs included |
+| **Backups** | S3 (pg_dump) | 5GB free tier for backups |
 
 ## Implementation Order
 
-1. **Week 1: Docker Setup**
+1. **Day 1-2: Docker Setup**
    - Create Dockerfile
    - Create docker-compose.yml for local dev
+   - Create docker-compose.prod.yml for production
    - Test locally with PostgreSQL
 
-2. **Week 2: Application Configuration**
+2. **Day 3-4: Application Configuration**
    - Split Django settings (base/dev/prod)
    - Add environment variable support
    - Implement health check endpoint
    - Test PostgreSQL migrations
+   - Configure Nginx
 
-3. **Week 3: Infrastructure**
-   - Set up AWS account and IAM
-   - Create CDK project
-   - Define VPC, RDS, ECS infrastructure
-   - Deploy to staging environment
+3. **Day 5-6: EC2 Setup**
+   - Launch EC2 t2.micro instance
+   - Install Docker and Docker Compose
+   - Configure security group
+   - Set up SSH access
 
-4. **Week 4: CI/CD & Production**
-   - Set up GitHub Actions workflow
-   - Configure ECR and image building
-   - Deploy to production
-   - Set up monitoring and alarms
+4. **Day 7: Deployment**
+   - Push Docker image to Docker Hub or ECR
+   - Deploy docker-compose to EC2
+   - Set up Let's Encrypt SSL
+   - Configure domain (CloudFlare or direct IP)
+   - Test application
+
+5. **Day 8: Automation & Monitoring**
+   - Set up GitHub Actions for CI/CD
+   - Configure database backups (S3)
+   - Set up CloudWatch logging
+   - Configure auto-updates
 
 ## Quick Commands
 
@@ -97,106 +114,145 @@ docker-compose exec web python manage.py migrate
 docker-compose exec web python manage.py createsuperuser
 ```
 
-### Build and Push to ECR
+### Build and Push to Docker Hub (Free)
 ```bash
-# Login to ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+# Login to Docker Hub
+docker login
 
 # Build image
-docker build -t time-warp:latest .
+docker build -t yourusername/time-warp:latest .
 
-# Tag for ECR
-docker tag time-warp:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/time-warp:latest
-
-# Push to ECR
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/time-warp:latest
+# Push to Docker Hub
+docker push yourusername/time-warp:latest
 ```
 
-### Deploy to ECS
+### Deploy to EC2
 ```bash
-# Update ECS service (via CDK or AWS CLI)
-aws ecs update-service --cluster time-warp-cluster --service time-warp-service --force-new-deployment
+# SSH to EC2 instance
+ssh -i your-key.pem ubuntu@your-ec2-ip
 
-# Run migrations (as ECS task)
-aws ecs run-task \
-  --cluster time-warp-cluster \
-  --task-definition time-warp-migrations \
-  --launch-type FARGATE \
-  --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],securityGroups=[sg-xxx],assignPublicIp=DISABLED}"
+# Pull latest image
+docker-compose -f docker-compose.prod.yml pull
+
+# Restart services
+docker-compose -f docker-compose.prod.yml up -d
+
+# Run migrations
+docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
+
+# View logs
+docker-compose -f docker-compose.prod.yml logs -f
+```
+
+### Set Up Let's Encrypt SSL
+```bash
+# SSH to EC2
+ssh -i your-key.pem ubuntu@your-ec2-ip
+
+# Install Certbot
+sudo apt update
+sudo apt install certbot python3-certbot-nginx
+
+# Get certificate (if using Nginx)
+sudo certbot --nginx -d yourdomain.com
+
+# Auto-renewal is set up automatically
+# Test renewal: sudo certbot renew --dry-run
 ```
 
 ## Cost Optimization Tips
 
-1. **Use Fargate Spot** for non-production environments (up to 70% savings)
-2. **Reserved Capacity** for RDS if predictable workload
-3. **S3 for static files** instead of EBS volumes
-4. **CloudWatch Logs retention** set to 7-14 days (not indefinite)
-5. **NAT Gateway** - consider NAT Instance for dev/staging (cheaper but less reliable)
+1. **Use AWS Free Tier** - First 12 months: $0/month
+2. **Reserved Instances** - After free tier: ~$5-6/month (save 40% vs on-demand)
+3. **Spot Instances** - For non-critical: ~$2-3/month (save 70-90%)
+4. **Docker Hub** - Free public repos (vs ECR which charges after 500MB)
+5. **CloudWatch Logs retention** - Set to 7 days (free tier: 5GB)
+6. **S3 Intelligent-Tiering** - Automatic cost optimization for backups
+7. **CloudFlare Free Tier** - Includes CDN, DDoS protection, DNS
+8. **Let's Encrypt** - Free SSL certificates (vs ACM which requires ALB)
 
 ## Security Checklist
 
-- [ ] ECS tasks run in private subnets
-- [ ] RDS has no public access
-- [ ] Security groups follow least privilege
-- [ ] Secrets stored in Secrets Manager (not environment variables)
-- [ ] HTTPS enforced (redirect HTTP to HTTPS)
+- [ ] Security group restricts SSH to your IP only
+- [ ] PostgreSQL only accessible from localhost (Docker network)
+- [ ] `.env` file has restricted permissions (chmod 600)
+- [ ] HTTPS enforced (redirect HTTP to HTTPS via Nginx)
 - [ ] `DEBUG=False` in production
 - [ ] `ALLOWED_HOSTS` properly configured
-- [ ] Database backups enabled
-- [ ] IAM roles use least privilege policies
-- [ ] CloudWatch logs encrypted
+- [ ] Database backups enabled (daily pg_dump to S3)
+- [ ] Regular security updates (`sudo apt update && sudo apt upgrade`)
+- [ ] Firewall configured (ufw or iptables)
+- [ ] Fail2ban installed (prevent brute force attacks)
+- [ ] Let's Encrypt auto-renewal configured
 
-## Monitoring Essentials
+## Monitoring Essentials (Free Tier)
 
-1. **ECS Service Metrics**
+1. **EC2 Instance Metrics** (Included)
    - CPU utilization
    - Memory utilization
-   - Running task count
+   - Network in/out
+   - Disk read/write
 
-2. **ALB Metrics**
+2. **Custom Application Metrics** (10 free)
    - Request count
-   - Target response time
-   - HTTP 5xx error count
-   - Healthy/unhealthy target count
+   - Response time
+   - Error rate (5xx)
+   - Database connection pool
 
-3. **RDS Metrics**
-   - CPU utilization
-   - Database connections
-   - Read/Write latency
-   - Free storage space
-
-4. **Application Logs**
+3. **CloudWatch Logs** (5GB free)
    - Django error logs
    - Gunicorn access logs
+   - Nginx access/error logs
    - Application-specific logs
+
+4. **Basic Alarms** (Optional - may incur small costs)
+   - High CPU (>80%)
+   - Low disk space (<20%)
+   - Application errors
 
 ## Troubleshooting
 
 ### Container won't start
-- Check CloudWatch logs for errors
-- Verify environment variables are set
-- Check security group allows outbound connections
-- Verify task has IAM role with necessary permissions
+- Check logs: `docker-compose logs web`
+- Verify environment variables in `.env` file
+- Check Docker is running: `sudo systemctl status docker`
+- Verify disk space: `df -h`
 
 ### Database connection issues
-- Verify RDS security group allows ECS security group
-- Check database endpoint is correct
-- Verify credentials in Secrets Manager
-- Check RDS is in same VPC as ECS tasks
+- Check PostgreSQL container is running: `docker-compose ps`
+- Verify database credentials in `.env` file
+- Check database logs: `docker-compose logs db`
+- Test connection: `docker-compose exec web python manage.py dbshell`
 
-### Health checks failing
-- Verify `/health/` endpoint exists and works
-- Check health check path and port in ALB target group
-- Verify security groups allow ALB to reach ECS tasks
-- Check application logs for errors
+### SSL certificate issues
+- Check Certbot logs: `sudo certbot certificates`
+- Verify domain DNS points to EC2 IP
+- Test renewal: `sudo certbot renew --dry-run`
+- Check Nginx config: `sudo nginx -t`
+
+### Application not accessible
+- Check security group allows HTTP (80) and HTTPS (443)
+- Verify Nginx is running: `docker-compose ps nginx`
+- Check Nginx logs: `docker-compose logs nginx`
+- Test locally on EC2: `curl http://localhost`
 
 ## Next Steps After Deployment
 
-1. Set up domain name and Route 53
-2. Configure SSL certificate (ACM)
-3. Set up CloudFront for static files (if using S3)
-4. Configure automated backups
-5. Set up staging environment
-6. Implement blue/green deployments
-7. Add application performance monitoring (optional: DataDog, New Relic)
+1. Set up domain name (CloudFlare free tier)
+2. Configure SSL certificate (Let's Encrypt via Certbot)
+3. Set up automated database backups (cron job + S3)
+4. Configure CloudWatch logging
+5. Set up basic monitoring alarms
+6. Configure auto-updates for security patches
+7. Set up GitHub Actions for automated deployments
+8. (Optional) Add application performance monitoring
+
+## Cost Summary
+
+| Period | Cost | Breakdown |
+|--------|------|-----------|
+| **First 12 months** | **$0/month** | AWS Free Tier covers everything |
+| **After free tier** | **~$10-15/month** | EC2 t2.micro + EBS + minimal data transfer |
+| **With Reserved Instance** | **~$7-8/month** | 1-year commitment saves 40% |
+| **With Spot Instance** | **~$2-3/month** | For non-critical workloads (can be interrupted) |
 
