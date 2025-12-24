@@ -41,6 +41,22 @@ def extract_youtube_video_id(raw: str) -> str:
     return m.group(1)
 
 
+def _serialize_submission(submission: Submission) -> Dict[str, Any]:
+    """Serialize a Submission model to API response format."""
+    return {
+        "id": submission.public_id,
+        "contributor_id": submission.contributor.public_id,
+        "clip_id": submission.clip.public_id if submission.clip else None,
+        "status": submission.status,
+        "validation_error": submission.validation_error,
+        "raw_youtube_input": submission.raw_youtube_input,
+        "raw_date_input": submission.raw_date_input,
+        "title": submission.title,
+        "notes": submission.notes,
+        "submitted_at": dt_to_z(submission.submitted_at),
+    }
+
+
 @api_view(["POST"])
 def create_contributor(request):
     ser = CreateContributorRequest(data=request.data)
@@ -157,17 +173,22 @@ def create_submission(request):
             submission.save()
 
     return Response(
-        {
-            "id": submission.public_id,
-            "contributor_id": contributor.public_id,
-            "clip_id": clip_id,
-            "status": status_str,
-            "validation_error": validation_error,
-            "raw_youtube_input": payload["raw_youtube_input"],
-            "raw_date_input": payload["raw_date_input"],
-            "title": payload.get("title"),
-            "notes": payload.get("notes"),
-            "submitted_at": dt_to_z(submission.submitted_at),
-        },
+        _serialize_submission(submission),
         status=http_status,
     )
+
+
+@api_view(["GET"])
+def get_submission(request, submissionId: str):
+    """Retrieve a submission by its public_id."""
+    try:
+        submission = Submission.objects.select_related("contributor", "clip").get(
+            public_id=submissionId
+        )
+    except Submission.DoesNotExist:
+        return Response(
+            {"detail": "Not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return Response(_serialize_submission(submission), status=status.HTTP_200_OK)
