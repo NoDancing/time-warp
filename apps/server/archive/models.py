@@ -8,6 +8,14 @@ def new_contributor_public_id() -> str:
     return f"ctr_{uuid4().hex}"
 
 
+def new_clip_public_id() -> str:
+    return f"clp_{uuid4().hex}"
+
+
+def new_submission_public_id() -> str:
+    return f"sub_{uuid4().hex}"
+
+
 class Contributor(models.Model):
     # Public contract id (what your API returns)
     public_id = models.CharField(
@@ -24,6 +32,11 @@ class Contributor(models.Model):
 
 
 class Clip(models.Model):
+    # Public contract id (what your API returns)
+    public_id = models.CharField(
+        max_length=40, unique=True, db_index=True, default=new_clip_public_id
+    )
+
     # canonical record
     contributor = models.ForeignKey(
         Contributor, on_delete=models.PROTECT, related_name="clips"
@@ -38,11 +51,19 @@ class Clip(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = [["youtube_video_id", "performance_date"]]
+
 
 class Submission(models.Model):
     class Status(models.TextChoices):
         ACCEPTED = "accepted"
         REJECTED = "rejected"
+
+    # Public contract id (what your API returns)
+    public_id = models.CharField(
+        max_length=40, unique=True, db_index=True, default=new_submission_public_id
+    )
 
     status = models.CharField(
         max_length=20,
