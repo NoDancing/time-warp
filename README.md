@@ -57,8 +57,6 @@ There is intentionally **one backend** for this repository.
 - POST /contributors - Create contributor
 - POST /submissions - Submit and validate clips (with duplicate detection)
 - GET /submissions/{id} - Retrieve submission
-
-⏳ **In Progress**:
 - GET /clips - List clips with date filtering and pagination
 - GET /clips/{id} - Retrieve single clip
 
