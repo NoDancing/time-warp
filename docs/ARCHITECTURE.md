@@ -49,12 +49,10 @@ The system is intentionally minimal to support manual workflows and avoid algori
   - Handles duplicate clips (409 Conflict)
   - Always persists Submission record (even when rejected)
 - Submission retrieval (GET /submissions/{id})
-- Database persistence with public_id identifiers
-- Unique constraint on (youtube_video_id, performance_date)
-
-### In Progress ⏳
 - Clip listing (GET /clips) with date filtering and pagination
 - Clip retrieval (GET /clips/{id})
+- Database persistence with public_id identifiers
+- Unique constraint on (youtube_video_id, performance_date)
 
 ---
 
