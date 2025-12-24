@@ -11,58 +11,78 @@
 
 ## Endpoints
 
-### POST /contributors
+### POST /contributors ✅ Implemented
 
 Creates a contributor identity.
 
 Request:
-- display_name
+- display_name (optional)
 - external_id (optional)
 
-Response:
-- Contributor object
+Response (201 Created):
+- id (public_id, format: `ctr_<hex>`)
+- display_name
+- external_id
+- created_at (RFC3339 format with trailing Z)
 
 ---
 
-### POST /submissions
+### POST /submissions ✅ Implemented
 
 Creates a Submission, validates input, and creates a Clip on success.
 
 Request:
-- contributor_id
-- raw_youtube_input
-- raw_date_input
+- contributor_id (required)
+- raw_youtube_input (required)
+- raw_date_input (required, format: YYYY-MM-DD)
 - title (optional)
 - notes (optional)
 
-Responses:
-- Accepted submission with clip_id
-- Rejected submission with validation_error
-- Conflict if duplicate clip exists
+Response (201 Created):
+- id (public_id, format: `sub_<hex>`)
+- contributor_id
+- clip_id (public_id, format: `clp_<hex>`, null if rejected)
+- status ("accepted" or "rejected")
+- validation_error (string, null if accepted)
+- raw_youtube_input
+- raw_date_input
+- title
+- notes
+- submitted_at (RFC3339 format with trailing Z)
+
+Duplicate clip handling:
+- If a clip with the same (youtube_video_id, performance_date) already exists, returns 409 Conflict
+- Submission is still created with status="rejected" and validation_error indicating duplicate
 
 ---
 
-### GET /submissions/{id}
+### GET /submissions/{id} ✅ Implemented
 
-Retrieves a submission record.
+Retrieves a submission record by its public_id.
+
+Response (200 OK):
+- Same format as POST /submissions response
+
+Response (404 Not Found):
+- detail: "Not found"
 
 ---
 
-### GET /clips
+### GET /clips ⏳ Not yet implemented
 
 Lists clips ordered by performance_date.
 
 Query parameters:
-- from (optional)
-- to (optional)
-- limit
-- cursor
+- from (optional, date format: YYYY-MM-DD)
+- to (optional, date format: YYYY-MM-DD)
+- limit (optional, default: 50, max: 200)
+- cursor (optional, for pagination)
 
 ---
 
-### GET /clips/{id}
+### GET /clips/{id} ⏳ Not yet implemented
 
-Retrieves a single clip.
+Retrieves a single clip by its public_id.
 
 ---
 

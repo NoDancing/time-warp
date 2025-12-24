@@ -42,7 +42,10 @@ def extract_youtube_video_id(raw: str) -> str:
 
 
 def _serialize_submission(submission: Submission) -> Dict[str, Any]:
-    """Serialize a Submission model to API response format."""
+    """Serialize a Submission model to API response format.
+    
+    Assumes submission has contributor and clip relationships loaded (via select_related).
+    """
     return {
         "id": submission.public_id,
         "contributor_id": submission.contributor.public_id,
@@ -171,6 +174,12 @@ def create_submission(request):
             validation_error = str(e)
             submission.validation_error = validation_error
             submission.save()
+
+    # Reload submission with relationships to ensure they're properly loaded
+    # This avoids any issues with accessing relationships that might not be cached
+    submission = Submission.objects.select_related("contributor", "clip").get(
+        pk=submission.pk
+    )
 
     return Response(
         _serialize_submission(submission),

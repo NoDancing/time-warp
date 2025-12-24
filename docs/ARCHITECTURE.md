@@ -36,3 +36,31 @@ The system is intentionally minimal to support manual workflows and avoid algori
 2. API validates input and records a Submission.
 3. If valid, a Clip is created and persisted.
 4. Browsing clients request Clips ordered by performance date.
+
+---
+
+## Implementation Status
+
+### Completed ✅
+- Contributor creation (POST /contributors)
+- Submission creation with validation (POST /submissions)
+  - Validates YouTube URL and date format
+  - Creates Clip on successful validation
+  - Handles duplicate clips (409 Conflict)
+  - Always persists Submission record (even when rejected)
+- Submission retrieval (GET /submissions/{id})
+- Database persistence with public_id identifiers
+- Unique constraint on (youtube_video_id, performance_date)
+
+### In Progress ⏳
+- Clip listing (GET /clips) with date filtering and pagination
+- Clip retrieval (GET /clips/{id})
+
+---
+
+## Technology Stack
+
+- **Backend**: Django 6.0 + Django REST Framework
+- **Database**: SQLite (development), PostgreSQL (production-ready)
+- **Testing**: pytest + pytest-django
+- **API Format**: JSON, RFC3339 timestamps

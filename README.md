@@ -36,6 +36,11 @@ From the repository root:
 pytest -q
 ```
 
+**Note**: Tests require `pytest-django` to be installed. If you encounter fixture errors, install it with:
+```bash
+pip install pytest-django
+```
+
 Tests are written as **contract tests** against the HTTP API and should not require any manual server startup.
 
 ### Backend Entry Point
@@ -45,3 +50,16 @@ Tests are written as **contract tests** against the HTTP API and should not requ
 - API implementation: `archive/api/`
 
 There is intentionally **one backend** for this repository.
+
+### Current Implementation Status
+
+✅ **Implemented**:
+- POST /contributors - Create contributor
+- POST /submissions - Submit and validate clips (with duplicate detection)
+- GET /submissions/{id} - Retrieve submission
+
+⏳ **In Progress**:
+- GET /clips - List clips with date filtering and pagination
+- GET /clips/{id} - Retrieve single clip
+
+See [API.md](docs/API.md) for detailed endpoint documentation.
