@@ -45,7 +45,7 @@ def extract_youtube_video_id(raw: str) -> str:
 
 def _serialize_submission(submission: Submission) -> Dict[str, Any]:
     """Serialize a Submission model to API response format.
-    
+
     Assumes submission has contributor and clip relationships loaded (via select_related).
     """
     return {
@@ -64,17 +64,17 @@ def _serialize_submission(submission: Submission) -> Dict[str, Any]:
 
 def _serialize_clip(clip: Clip) -> Dict[str, Any]:
     """Serialize a Clip model to API response format.
-    
+
     Assumes clip has contributor relationship loaded (via select_related).
     Finds the submission that created this clip.
     """
     # Find the submission that created this clip (first accepted submission)
     submission = clip.submissions.filter(status=Submission.Status.ACCEPTED).first()
     added_via_submission_id = submission.public_id if submission else None
-    
+
     # Construct YouTube URL
     youtube_url = f"https://www.youtube.com/watch?v={clip.youtube_video_id}"
-    
+
     return {
         "id": clip.public_id,
         "youtube_video_id": clip.youtube_video_id,
@@ -272,7 +272,7 @@ def list_clips(request):
     to_date_str = request.query_params.get("to")
     limit_str = request.query_params.get("limit", "50")
     cursor_str = request.query_params.get("cursor")
-    
+
     # Validate and parse dates
     from_date = None
     to_date = None
@@ -284,7 +284,7 @@ def list_clips(request):
                 {"detail": "Invalid 'from' date format. Expected YYYY-MM-DD"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-    
+
     if to_date_str:
         try:
             to_date = date.fromisoformat(to_date_str)
@@ -293,7 +293,7 @@ def list_clips(request):
                 {"detail": "Invalid 'to' date format. Expected YYYY-MM-DD"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-    
+
     # Validate limit
     try:
         limit = int(limit_str)
@@ -303,7 +303,7 @@ def list_clips(request):
             limit = 200
     except ValueError:
         limit = 50
-    
+
     # Decode cursor
     offset = 0
     if cursor_str:
@@ -314,37 +314,39 @@ def list_clips(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         offset = decoded_offset
-    
+
     # Build queryset
     queryset = Clip.objects.select_related("contributor").order_by(
         "performance_date", "created_at", "id"
     )
-    
+
     # Apply date filtering
     if from_date:
         queryset = queryset.filter(performance_date__gte=from_date)
     if to_date:
         queryset = queryset.filter(performance_date__lte=to_date)
-    
+
     # Get total count for pagination
     total_count = queryset.count()
-    
+
     # Apply pagination
-    clips = list(queryset[offset : offset + limit + 1])  # Fetch one extra to check if there's more
-    
+    clips = list(
+        queryset[offset : offset + limit + 1]
+    )  # Fetch one extra to check if there's more
+
     # Determine if there's a next page
     has_next = len(clips) > limit
     if has_next:
         clips = clips[:limit]
-    
+
     # Serialize clips
     items = [_serialize_clip(clip) for clip in clips]
-    
+
     # Generate next cursor
     next_cursor = None
     if has_next:
         next_cursor = _encode_cursor(offset + limit)
-    
+
     return Response(
         {
             "items": items,

@@ -141,9 +141,7 @@ def test_list_clips_date_filtering_range(client) -> None:
         assert create_resp.json()["clip_id"] is not None, "Clip should be created"
 
     # Filter from 2024-02-01 to 2024-03-31
-    list_resp = client.get(
-        "/clips", params={"from": "2024-02-01", "to": "2024-03-31"}
-    )
+    list_resp = client.get("/clips", params={"from": "2024-02-01", "to": "2024-03-31"})
     assert list_resp.status_code == 200, list_resp.text
     data = list_resp.json()
 
@@ -166,7 +164,7 @@ def test_list_clips_pagination_with_cursor(client) -> None:
         submission_payload = {
             "contributor_id": contributor_id,
             "raw_youtube_input": f"https://youtu.be/{video_id}",
-            "raw_date_input": f"2024-01-{i+1:02d}",
+            "raw_date_input": f"2024-01-{i + 1:02d}",
         }
         create_resp = client.post("/submissions", json=submission_payload)
         assert create_resp.status_code == 201, create_resp.text
@@ -194,7 +192,8 @@ def test_list_clips_pagination_with_cursor(client) -> None:
 def test_list_clips_pagination_no_more_results(client) -> None:
     # Create contributor
     contributor_resp = client.post(
-        "/contributors", json={"display_name": "Pagination Tester 2", "external_id": None}
+        "/contributors",
+        json={"display_name": "Pagination Tester 2", "external_id": None},
     )
     assert contributor_resp.status_code == 201, contributor_resp.text
     contributor_id = contributor_resp.json()["id"]
@@ -205,7 +204,7 @@ def test_list_clips_pagination_no_more_results(client) -> None:
         submission_payload = {
             "contributor_id": contributor_id,
             "raw_youtube_input": f"https://youtu.be/{video_id}",
-            "raw_date_input": f"2024-01-{i+1:02d}",
+            "raw_date_input": f"2024-01-{i + 1:02d}",
         }
         create_resp = client.post("/submissions", json=submission_payload)
         assert create_resp.status_code == 201, create_resp.text
@@ -235,7 +234,7 @@ def test_list_clips_limit_enforcement(client) -> None:
         submission_payload = {
             "contributor_id": contributor_id,
             "raw_youtube_input": f"https://youtu.be/{video_id}",
-            "raw_date_input": f"2024-01-{i+1:02d}",
+            "raw_date_input": f"2024-01-{i + 1:02d}",
         }
         create_resp = client.post("/submissions", json=submission_payload)
         assert create_resp.status_code == 201, create_resp.text
@@ -281,7 +280,9 @@ def test_list_clips_ordering_by_performance_date_then_created_at(client) -> None
             "raw_date_input": "2024-01-15",  # Same date
         }
         create_resp = client.post("/submissions", json=submission_payload)
-        assert create_resp.status_code == 201, f"Failed to create clip: {create_resp.text}"
+        assert create_resp.status_code == 201, (
+            f"Failed to create clip: {create_resp.text}"
+        )
         clip_id = create_resp.json()["clip_id"]
         assert clip_id is not None, "Clip should be created"
         clip_ids.append(clip_id)
@@ -292,8 +293,12 @@ def test_list_clips_ordering_by_performance_date_then_created_at(client) -> None
     data = list_resp.json()
 
     # Should have at least 3 clips with this date
-    matching_clips = [item for item in data["items"] if item["performance_date"] == "2024-01-15"]
-    assert len(matching_clips) >= 3, f"Expected at least 3 clips, got {len(matching_clips)}"
+    matching_clips = [
+        item for item in data["items"] if item["performance_date"] == "2024-01-15"
+    ]
+    assert len(matching_clips) >= 3, (
+        f"Expected at least 3 clips, got {len(matching_clips)}"
+    )
 
     # Verify ordering is stable (created_at ascending as tiebreaker)
     # Items should be in creation order
@@ -328,4 +333,3 @@ def test_list_clips_invalid_cursor(client) -> None:
     resp = client.get("/clips", params={"cursor": "invalid-cursor"})
     assert resp.status_code == 400, resp.text
     assert resp.json()["detail"] == "Invalid cursor"
-

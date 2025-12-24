@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 
-def test_create_submission_duplicate_clip_returns_409_and_rejected_submission(client) -> None:
+def test_create_submission_duplicate_clip_returns_409_and_rejected_submission(
+    client,
+) -> None:
     """Two accepted submissions with the same (youtube_video_id, performance_date) should return 409 Conflict on the second attempt."""
     # Create contributor first
     contributor_resp = client.post(
@@ -35,7 +37,9 @@ def test_create_submission_duplicate_clip_returns_409_and_rejected_submission(cl
     assert isinstance(second_data.get("id"), str) and second_data["id"]
     assert second_data.get("contributor_id") == contributor_id
     assert second_data.get("clip_id") is None
-    assert isinstance(second_data.get("validation_error"), str) and second_data["validation_error"]
+    assert (
+        isinstance(second_data.get("validation_error"), str)
+        and second_data["validation_error"]
+    )
     # Should indicate duplicate
     assert "duplicate" in second_data["validation_error"].lower()
-

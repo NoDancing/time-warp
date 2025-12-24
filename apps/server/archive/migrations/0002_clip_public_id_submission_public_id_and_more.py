@@ -5,24 +5,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('archive', '0001_initial'),
+        ("archive", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='clip',
-            name='public_id',
-            field=models.CharField(db_index=True, default=archive.models.new_clip_public_id, max_length=40, unique=True),
+            model_name="clip",
+            name="public_id",
+            field=models.CharField(
+                db_index=True,
+                default=archive.models.new_clip_public_id,
+                max_length=40,
+                unique=True,
+            ),
         ),
         migrations.AddField(
-            model_name='submission',
-            name='public_id',
-            field=models.CharField(db_index=True, default=archive.models.new_submission_public_id, max_length=40, unique=True),
+            model_name="submission",
+            name="public_id",
+            field=models.CharField(
+                db_index=True,
+                default=archive.models.new_submission_public_id,
+                max_length=40,
+                unique=True,
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='clip',
-            unique_together={('youtube_video_id', 'performance_date')},
+            name="clip",
+            unique_together={("youtube_video_id", "performance_date")},
         ),
     ]

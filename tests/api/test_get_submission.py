@@ -92,4 +92,3 @@ def test_get_submission_rejected_has_no_clip_id(client) -> None:
 def test_get_submission_not_found_returns_404(client) -> None:
     resp = client.get("/submissions/nonexistent_id")
     assert resp.status_code == 404, resp.text
-

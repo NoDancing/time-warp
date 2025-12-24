@@ -47,7 +47,10 @@ def test_get_clip_returns_created_clip(client) -> None:
     assert data["title"] == "Test Performance"
     assert data["notes"] == "Contract test clip"
     assert data["created_by_contributor_id"] == contributor_id
-    assert isinstance(data["added_via_submission_id"], str) and data["added_via_submission_id"]
+    assert (
+        isinstance(data["added_via_submission_id"], str)
+        and data["added_via_submission_id"]
+    )
     assert isinstance(data["created_at"], str) and data["created_at"]
     _parse_rfc3339(data["created_at"])
 
@@ -86,4 +89,3 @@ def test_get_clip_not_found_returns_404(client) -> None:
     resp = client.get("/clips/nonexistent_clip_id")
     assert resp.status_code == 404, resp.text
     assert resp.json()["detail"] == "Not found"
-
