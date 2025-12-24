@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone, date
-from uuid import uuid4
 from archive.models import Contributor, Clip, Submission
 from django.db import transaction, IntegrityError
 
@@ -15,10 +14,6 @@ import json
 from typing import Any, Dict, cast
 
 from .serializers import CreateContributorRequest, CreateSubmissionRequest
-
-
-def utc_now_z() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def dt_to_z(dt: datetime) -> str:
