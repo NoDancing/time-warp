@@ -47,7 +47,9 @@ class ContractClient:
     def __init__(self) -> None:
         self._c = APIClient()
 
-    def post(self, path: str, json: Optional[Dict[str, Any]] = None, **kwargs: Any) -> _Resp:
+    def post(
+        self, path: str, json: Optional[Dict[str, Any]] = None, **kwargs: Any
+    ) -> _Resp:
         resp = self._c.post(path, data=json or {}, format="json", **kwargs)
         return _Resp(
             status_code=resp.status_code,
@@ -55,7 +57,9 @@ class ContractClient:
             _raw=getattr(resp, "content", b""),
         )
 
-    def get(self, path: str, params: Optional[Dict[str, Any]] = None, **kwargs: Any) -> _Resp:
+    def get(
+        self, path: str, params: Optional[Dict[str, Any]] = None, **kwargs: Any
+    ) -> _Resp:
         resp = self._c.get(path, data=params or {}, format="json", **kwargs)
         return _Resp(
             status_code=resp.status_code,
@@ -65,5 +69,6 @@ class ContractClient:
 
 
 @pytest.fixture
-def client() -> ContractClient:
+def client(db) -> ContractClient:
+    """Contract client with DB access enabled via pytest-django."""
     return ContractClient()

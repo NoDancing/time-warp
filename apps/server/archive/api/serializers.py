@@ -2,8 +2,12 @@ from rest_framework import serializers
 
 
 class CreateContributorRequest(serializers.Serializer):
-    display_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    external_id = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    display_name = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True
+    )
+    external_id = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True
+    )
 
 
 class CreateSubmissionRequest(serializers.Serializer):
